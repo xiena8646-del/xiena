@@ -49,17 +49,17 @@ def is_valid_checkin_time(shift: str, now: datetime = None) -> tuple[bool, str]:
     current_time = now.time()
     
     if shift == "1":      
-        if current_time < datetime_time(11, 30):
-            return False, "⚠️ 第一班上班需在 **11:30之后** 打卡"
+        if current_time < datetime_time(20, 0):
+            return False, "⚠️ 第一班上班需在 **20:00之后** 打卡"
     elif shift == "2":    
-        if current_time >= datetime_time(18, 30):
-            return False, "⚠️ 第一班下班需在 **18:30之前** 打卡"
+        if current_time >= datetime_time(3, 0):
+            return False, "⚠️ 第一班下班需在 **03:00之前** 打卡"
     elif shift == "3":    
-        if current_time < datetime_time(18, 30):
-            return False, "⚠️ 第二班上班需在 **18:30之后** 打卡"
+        if current_time < datetime_time(5, 0):
+            return False, "⚠️ 第二班上班需在 **05:00之后** 打卡"
     elif shift == "4":    
-        if current_time >= datetime_time(3, 30):
-            return False, "⚠️ 第二班下班需在 **03:30之前** 打卡（00:00-03:30）"
+        if current_time >= datetime_time(12, 0):
+            return False, "⚠️ 第二班下班需在 **12:00之前** 打卡（05:00-12:00）"
     
     return True, ""
 
@@ -71,12 +71,12 @@ def is_valid_rest_time(shift: str) -> tuple[bool, str]:
     now = beijing_now()
     current_time = now.time()
     
-    if (datetime_time(12, 00) <= current_time < datetime_time(18, 0)) or \
-       (datetime_time(19, 00) <= current_time) or \
-       (current_time < datetime_time(3, 0)):
+    if (datetime_time(20, 00) <= current_time) or \
+       (current_time < datetime_time(3, 0)) or \
+       (datetime_time(5, 00) <= current_time < datetime_time(12, 0)):
         return True, ""
     
-    return False, "⚠️ 休息/暂离（5或7）只能在以下工作时段打卡：\n• 第一班 12:00-18:00\n• 第二班 19:00-03:00"
+    return False, "⚠️ 休息/暂离（5或7）只能在以下工作时段打卡：\n• 第一班 20:00-03:00\n• 第二班 05:00-12:00"
 
 
 def calculate_rest_duration(start_time_str: str, end_time_str: str) -> int:
@@ -188,10 +188,6 @@ def get_late_minutes(expected: str, shift: str = None, now: datetime = None) -> 
         expected_dt = now.replace(hour=exp_hm.hour, minute=exp_hm.minute, 
                                 second=0, microsecond=0)
         
-        if shift == "3":
-            if now.hour < 1:  
-                expected_dt -= timedelta(days=1)
-        
         delta = now - expected_dt
         late_seconds = max(0, int(delta.total_seconds()))
         
@@ -209,10 +205,10 @@ def get_late_minutes(expected: str, shift: str = None, now: datetime = None) -> 
 
 # ================== 日期逻辑 ==================
 def get_attendance_date(now=None):
-    """考勤日期：04:00 为分界点，所有00:00-03:59的记录都算前一天"""
+    """考勤日期：12:00 为分界点，所有00:00-11:59的记录都算前一天"""
     if now is None:
         now = beijing_now()
-    if now.hour < 4:   # 00:00-03:59 算前一天
+    if now.hour < 12:   # 00:00-11:59 算前一天
         return beijing_date_str(now - timedelta(days=1))
     return beijing_date_str(now)
 
@@ -225,13 +221,10 @@ def get_record_date(shift: str, now=None) -> str:
 
 # ================== 日报日期函数 ==================
 def get_report_date_for_daily(now=None) -> str:
-    """自动日报专用 - 确保取前一天完整考勤日期 (基于04:00分界点)"""
+    """自动日报专用：12:00发送上一完整考勤日的报表"""
     if now is None:
         now = beijing_now()
-    # 在 04:00 之前触发日报，应该生成前一天的报表
-    # 如果当前时间是 01:30，那么 get_attendance_date(now) 会返回前一天
-    # 所以直接返回 get_attendance_date(now) 即可，它会根据 02:00 分界点自动处理
-    return get_attendance_date(now)
+    return beijing_date_str(now - timedelta(days=1))
 
 # ================== DataManager ==================
 class DataManager:
@@ -348,10 +341,10 @@ class DataManager:
 
 # ================== ACTIONS ==================
 ACTIONS = {
-    "1": {"name": "第一班上班", "time": "12:30", "is_work": True,  "type": "work"},
-    "2": {"name": "第一班下班", "time": "17:30", "is_work": False, "type": "work"},
-    "3": {"name": "第二班上班", "time": "19:30", "is_work": True,  "type": "work"},
-    "4": {"name": "下班打卡完成，请将设备摆放整齐并开启飞行模式", "time": "02:30", "is_work": False, "type": "work"},
+    "1": {"name": "第一班上班", "time": "20:00", "is_work": True,  "type": "work"},
+    "2": {"name": "第一班下班", "time": "02:00", "is_work": False, "type": "work"},
+    "3": {"name": "第二班上班", "time": "05:00", "is_work": True,  "type": "work"},
+    "4": {"name": "下班打卡完成，请将设备摆放整齐并开启飞行模式", "time": "11:00", "is_work": False, "type": "work"},
     "5": {"name": "开始休息",       "time": None, "is_work": False, "type": "rest_start"},
     "6": {"name": "结束休息",       "time": None, "is_work": False, "type": "rest_end"},
     "7": {"name": "工作原因暂离座位", "time": None, "is_work": False, "type": "work_rest_start"},
@@ -1177,7 +1170,7 @@ async def today_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"🕒 当前北京时间：**{now.strftime('%Y-%m-%d %H:%M:%S')}**\n"
         f"📅 当前考勤日期：**{att_date}**\n"
-        f"📊 今日03:00将发送的日报日期：**{report_date}**",
+        f"📊 今日12:00将发送的日报日期：**{report_date}**",
         parse_mode="Markdown"
     )
 
@@ -1231,7 +1224,7 @@ def main():
     
     beijing_tz = ZoneInfo("Asia/Shanghai")
     
-    daily_time = datetime_time(3, 50, 0, tzinfo=beijing_tz)
+    daily_time = datetime_time(12, 0, 0, tzinfo=beijing_tz)
     cleanup_time = datetime_time(3, 55, 0, tzinfo=beijing_tz)
     
     jq.run_daily(send_daily_report, daily_time)
