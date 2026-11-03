@@ -49,17 +49,15 @@ def is_valid_checkin_time(shift: str, now: datetime = None) -> tuple[bool, str]:
     current_time = now.time()
     
     if shift == "1":      
-        if current_time < datetime_time(20, 0):
-            return False, "⚠️ 第一班上班需在 **20:00之后** 打卡"
+        if current_time < datetime_time(19, 0):
+            return False, "⚠️ 第一班上班需在 **19:00之后** 打卡"
     elif shift == "2":    
-        if current_time >= datetime_time(3, 0):
-            return False, "⚠️ 第一班下班需在 **03:00之前** 打卡"
+        pass  # 第一班下班卡不限制打卡时间
     elif shift == "3":    
-        if current_time < datetime_time(5, 0):
-            return False, "⚠️ 第二班上班需在 **05:00之后** 打卡"
+        if current_time < datetime_time(4, 0):
+            return False, "⚠️ 第二班上班需在 **04:00之后** 打卡"
     elif shift == "4":    
-        if current_time >= datetime_time(12, 0):
-            return False, "⚠️ 第二班下班需在 **12:00之前** 打卡（05:00-12:00）"
+        pass  # 第二班下班卡不限制打卡时间
     
     return True, ""
 
